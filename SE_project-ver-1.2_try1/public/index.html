@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting System</title>
+    <!-- Main Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Slide Navbar Styles -->
+    <link rel="stylesheet" type="text/css" href="slide navbar style.css">
+    <!-- Login and Signup Interface Styles -->
+    <link rel="stylesheet" type="text/css" href="login-signup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK Files -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+    <script src="colorblind.js"></script>
+
+    <style>
+        .countdown {
+            font-weight: bold;
+            color: red;
+        }
+        .voted {
+            color: green;
+            font-weight: bold;
+        }
+        .vote-button-disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+        .checkmark-btn {
+            background-color: transparent;
+            border: none;
+            font-size: 1.5em;
+            color: green;
+            cursor: default;
+        }
+        /* Optional: Add highlight effect for selected options */
+        .poll-option.selected {
+            background-color: #e0ffe0;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        /* New: Hide main content and logout section until authentication status is determined */
+        .main, #logoutSection, #pollList {
+            display: none;
+        }
+
+        .time-up {
+            color: red;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .ended-notice {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+
+        .time-up {
+            color: red;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .ended-badge {
+            background-color: #ff4d4d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .poll-options-expired .poll-option {
+            opacity: 0.7;
+        }
+        
+        /* Styles for Ended Notice */
+        .ended-notice {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+
+        .time-up {
+            color: red;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .ended-badge {
+            background-color: #ff4d4d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Voting System</h1>
+        <div class="color-blind-modes">
+            <button onclick="toggleColorBlindList()" aria-haspopup="true" aria-expanded="false" id="colorBlindToggle">
+                Color Mode
+            </button>
+            <div id="colorBlindList" style="display: none;">
+                <button onclick="setColorBlindMode('normal')">Normal</button>
+                <button onclick="setColorBlindMode('protanopia')">Protanopia</button>
+                <button onclick="setColorBlindMode('deuteranopia')">Deuteranopia</button>
+                <button onclick="setColorBlindMode('tritanopia')">Tritanopia</button>
+                <button onclick="setColorBlindMode('tritanomaly')">Tritanomaly</button>
+                <button onclick="setColorBlindMode('achromatopsia')">Achromatopsia</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Login and Signup Interface -->
+        <div class="main">      
+            <input type="checkbox" id="chk" aria-hidden="true">
+
+            <div class="signup">
+                <form id="signupForm">
+                    <label for="chk" aria-hidden="true">Register</label>
+                    <input type="text" name="username" id="signupUsername" placeholder="Username" required="" aria-label="Enter Username">
+                    <input type="email" name="email" id="signupEmail" placeholder="Email" required="" aria-label="Enter Email">
+                    <input type="password" name="pswd" id="signupPassword" placeholder="Password" required="" aria-label="Enter Password">
+                    <button type="button" onclick="register()" aria-label="Register Account">Register</button>
+                </form>
+            </div>
+
+            <div class="login">
+                <form id="loginForm">
+                    <label for="chk" aria-hidden="true">Login</label>
+                    <input type="email" name="email" id="email" placeholder="Email" required="" aria-label="Enter Email">
+                    <input type="password" name="pswd" id="password" placeholder="Password" required="" aria-label="Enter Password">
+                    <button type="button" onclick="login()" aria-label="Login Account">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Logout State -->
+        <section id="logoutSection">
+            <div class="user-icon-container">
+                <img id="userIcon" src="" alt="User Avatar">
+                <button onclick="changeUserIcon()" class="change-icon-button" aria-label="Change Avatar">Change Avatar</button>
+            </div>
+            <h2>Welcome, <span id="userDisplay"></span></h2>
+            <p id="userType" aria-label="Your Account Type"></p>
+            <button onclick="logout()" aria-label="Logout Account">Logout</button>
+            <button onclick="showChangePasswordForm()" aria-label="Change Password">Change Password</button>
+            <div class="admin-buttons">
+                <button onclick="location.href='create_poll.html'" class="button" aria-label="Create New Poll">Create Poll</button>
+                <button onclick="showUsersList()" id="showUsersButton" class="button" style="display: none;" aria-label="Show Registered Users List">Show Users</button>
+                <button onclick="location.href='admin_manage_polls.html'" id="managePollsButton" class="button" style="display: none;" aria-label="Manage Existing Polls">Manage Polls</button>
+            </div>
+        </section>
+        
+        <!-- Poll List -->
+        <section id="pollList">
+            <h2 class="white-text">Existing Polls</h2>
+            <!-- Polls will be dynamically added here -->
+            <div id="pollListContent"></div>
+        </section>
+    </main>
+
+    <!-- Users List Modal -->
+    <div id="userListModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeUsersList()" aria-label="Close Users List">&times;</span>
+            <h2>Registered Users</h2>
+            <div id="userListContent"></div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeChangePasswordForm()" aria-label="Close Change Password Form">&times;</span>
+            <h2>Change Password</h2>
+            <input type="password" id="currentPassword" placeholder="Current Password" aria-label="Enter Current Password">
+            <input type="password" id="newPassword" placeholder="New Password" aria-label="Enter New Password">
+            <div id="newPasswordRequirements"></div>
+            <input type="password" id="confirmNewPassword" placeholder="Confirm New Password" aria-label="Confirm New Password">
+            <button onclick="changePassword()" aria-label="Submit Change Password">Change Password</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTjkufP4mtjwHv4WDokER5juRUXxp6pjg",
+            authDomain: "it350-7cebd.firebaseapp.com",
+            databaseURL: "https://it350-7cebd-default-rtdb.firebaseio.com",
+            projectId: "it350-7cebd",
+            storageBucket: "it350-7cebd.appspot.com",
+            messagingSenderId: "77388034445",
+            appId: "1:77388034445:web:af46ceea614fd1142a0dc4",
+            measurementId: "G-MVG8V25RGR"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const analytics = firebase.analytics();
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Encrypt Username (currently no actual encryption)
+        function encryptUsername(username) {
+            return username; // No encryption applied currently
+        }
+
+        // Decrypt Username
+        function decryptUsername(encryptedUsername) {
+            return encryptedUsername; // No decryption applied currently
+        }
+
+        // Encrypt Password (currently no actual encryption)
+        function encryptPassword(password) {
+            return password; // No encryption applied currently
+        }
+
+        // Password Strength Check
+        function isPasswordStrong(password) {
+            const requirements = [
+                /.{8,}/,        // At least 8 characters
+                /[A-Z]/,        // Contains uppercase letters
+                /[a-z]/,        // Contains lowercase letters
+                /[0-9]/,        // Contains numbers
+                /[^A-Za-z0-9]/  // Contains special characters
+            ];
+            return requirements.every(regex => regex.test(password));
+        }
+
+        // Set Firebase Auth Persistence to SESSION
+        auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+            .then(() => {
+                console.log("Auth persistence set to SESSION");
+            })
+            .catch((error) => {
+                console.error("Failed to set auth persistence:", error);
+            });
+
+        // Listen for Firebase Auth State Changes
+        window.onload = function() {
+            const savedMode = localStorage.getItem('colorBlindMode');
+            if (savedMode) {
+                setColorBlindMode(savedMode);
+            }
+
+            auth.onAuthStateChanged(async function(user) {
+                if (user) {
+                    const userId = user.uid;
+                    const userRef = database.ref('users/' + userId);
+                    const snapshot = await userRef.once('value');
+                    const userData = snapshot.val();
+                    if (userData) {
+                        if (userData.banned) {
+                            alert("Your account has been disabled.");
+                            auth.signOut();
+                            showLoggedOutState();
+                            return;
+                        }
+                        showLoggedInState(userData.username, userData.type, userData.icon);
+                    }
+                } else {
+                    showLoggedOutState();
+                }
+            });
+        }
+
+        // Login Function
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Login successful
+                    const user = userCredential.user;
+                    console.log("Login successful:", user.uid);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error("Login failed:", errorCode, errorMessage);
+                    alert(`Login failed: ${errorMessage}`);
+                });
+        }
+
+        // Signup Function
+        function register() {
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            if (!isPasswordStrong(password)) {
+                alert("Password does not meet all requirements!");
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Signup successful
+                    const user = userCredential.user;
+                    const userId = user.uid;
+                    return database.ref('users/' + userId).set({
+                        username: username,
+                        email: email,
+                        type: 'user',
+                        banned: false,
+                        icon: 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/271deea8-e28c-41a3-aaf5-2913f5f48be6/de7834s-6515bd40-8b2c-4dc6-a843-5ac1a95a8b55.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcLzI3MWRlZWE4LWUyOGMtNDFhMy1hYWY1LTI5MTNmNWY0OGJlNlwvZGU3ODM0cy02NTE1YmQ0MC04YjJjLTRkYzYtYTg0My01YWMxYTk1YThiNTUuanBnIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.BopkDn1ptIwbmcKHdAOlYHyAOOACXW0Zfgbs0-6BY-E'
+                    });
+                })
+                .then(() => {
+                    alert("Registration successful! You are now logged in.");
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error("Registration failed:", errorCode, errorMessage);
+                    alert(`Registration failed: ${errorMessage}`);
+                });
+        }
+
+        // Logout Function
+        function logout() {
+            auth.signOut()
+                .then(() => {
+                    console.log("Logged out");
+                })
+                .catch((error) => {
+                    console.error("Logout failed:", error);
+                    alert(`Logout failed: ${error.message}`);
+                });
+        }
+
+        // Show Logged-In State Interface
+        function showLoggedInState(username, userType, iconUrl) {
+            document.querySelector('.main').style.display = 'none';
+            document.getElementById('logoutSection').style.display = 'block';
+            document.getElementById('userDisplay').innerText = username;
+            
+            document.getElementById('userType').innerText = `Account Type: ${userType}`;
+            if (iconUrl) {
+                document.getElementById('userIcon').src = iconUrl;
+            } else {
+                document.getElementById('userIcon').src = 'default-icon.png'; // Use default image
+            }
+
+            // If the user is an administrator, show admin buttons
+            if (userType === 'admin') {
+                document.getElementById('managePollsButton').style.display = 'inline-block';
+                document.getElementById('showUsersButton').style.display = 'inline-block';
+            } else {
+                document.getElementById('managePollsButton').style.display = 'none';
+                document.getElementById('showUsersButton').style.display = 'none';
+            }
+
+            // Show poll list
+            document.getElementById('pollList').style.display = 'block';
+            loadPolls();
+        }
+
+        // Show Logged-Out State Interface
+        function showLoggedOutState() {
+            document.querySelector('.main').style.display = 'block';
+            document.getElementById('logoutSection').style.display = 'none';
+            document.getElementById('pollList').style.display = 'none';
+        }
+
+        // Change User Avatar
+        function changeUserIcon() {
+            const user = auth.currentUser;
+            if (user) {
+                const newIconUrl = prompt("Please enter the new avatar URL:");
+                if (newIconUrl) {
+                    const userRef = database.ref('users/' + user.uid);
+                    userRef.update({ icon: newIconUrl })
+                        .then(() => {
+                            document.getElementById('userIcon').src = newIconUrl;
+                            alert("Avatar updated successfully!");
+                        })
+                        .catch((error) => {
+                            console.error("Failed to update avatar:", error);
+                            alert(`Failed to update avatar: ${error.message}`);
+                        });
+                }
+            } else {
+                alert("User is not logged in!");
+            }
+        }
+
+        // Show Change Password Form
+        function showChangePasswordForm() {
+            document.getElementById('changePasswordModal').style.display = 'block';
+        }
+
+        // Close Change Password Form
+        function closeChangePasswordForm() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        }
+
+        // Change Password
+        function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmNewPassword) {
+                alert("New password and confirmation password do not match!");
+                return;
+            }
+
+            if (!isPasswordStrong(newPassword)) {
+                alert("New password does not meet all requirements!");
+                return;
+            }
+
+            const user = auth.currentUser;
+            const credential = firebase.auth.EmailAuthProvider.credential(
+                user.email,
+                currentPassword
+            );
+
+            // Reauthenticate to confirm current password
+            user.reauthenticateWithCredential(credential)
+                .then(() => {
+                    // Update password
+                    user.updatePassword(newPassword)
+                        .then(() => {
+                            alert("Password changed successfully!");
+                            closeChangePasswordForm();
+                        })
+                        .catch((error) => {
+                            console.error("Failed to change password:", error);
+                            alert(`Failed to change password: ${error.message}`);
+                        });
+                })
+                .catch((error) => {
+                    console.error("Current password verification failed:", error);
+                    alert(`Current password verification failed: ${error.message}`);
+                });
+        }
+
+        // Load Polls
+        function loadPolls() {
+            const pollListContent = document.getElementById('pollListContent');
+            pollListContent.innerHTML = ''; // Clear existing content
+
+            const pollsRef = database.ref('polls').orderByChild('endTime').limitToLast(100); // Assume maximum 100 polls
+            pollsRef.once('value')
+                .then((snapshot) => {
+                    const polls = snapshot.val();
+                    if (polls) {
+                        const currentTime = new Date();
+                        const user = auth.currentUser;
+                        let userVotes = {};
+                        if (user) {
+                            // Get user's voting records
+                            const userVotesRef = database.ref('polls');
+                            userVotesRef.once('value').then((pollsSnapshot) => {
+                                pollsSnapshot.forEach((pollSnap) => {
+                                    const pollId = pollSnap.key;
+                                    const vote = pollSnap.child(`userVotes/${user.uid}`).val();
+                                    if (vote) {
+                                        userVotes[pollId] = vote;
+                                    }
+                                });
+                                renderPolls(polls, currentTime, userVotes);
+                            });
+                        } else {
+                            renderPolls(polls, currentTime, userVotes);
+                        }
+                    } else {
+                        pollListContent.innerText = 'There are currently no polls.';
+                    }
+                })
+                .catch((error) => {
+                    console.error("Failed to load polls:", error);
+                    pollListContent.innerText = 'Failed to load polls. Please try again later.';
+                });
+        }
+
+        // Render Polls with User Vote Information
+        function renderPolls(polls, currentTime, userVotes) {
+            const pollListContent = document.getElementById('pollListContent');
+            pollListContent.innerHTML = ''; // Clear existing content
+
+            // Convert polls object to array and sort by endTime descending
+            const pollsArray = Object.keys(polls).map(pollId => {
+                return { pollId: pollId, ...polls[pollId] };
+            });
+
+            pollsArray.sort((a, b) => {
+                const timeA = new Date(a.endTime).getTime();
+                const timeB = new Date(b.endTime).getTime();
+                return timeB - timeA; // Descending
+            });
+
+            for (let poll of pollsArray) {
+                const pollId = poll.pollId;
+                const pollEndTime = new Date(poll.endTime);
+                const isExpired = currentTime > pollEndTime;
+
+                const pollDiv = document.createElement('div');
+                pollDiv.className = 'poll';
+                pollDiv.innerHTML = `
+                    <h3>${poll.name}</h3>
+                    <p class="poll-description">${poll.description}</p>
+                    <p><strong>End Time:</strong> ${pollEndTime.toLocaleString()}</p>
+                    <p id="countdown_${pollId}" class="countdown"></p>
+                    <div class="poll-options ${isExpired ? 'poll-options-expired' : ''}">
+                        ${poll.options.map(option => `
+                            <div class="poll-option ${userVotes[pollId] === option.text ? 'selected' : ''}">
+                                ${option.image ? `<img src="${option.image}" alt="${option.text}">` : ''}
+                                <div class="poll-option-content">
+                                    <span>${option.text}</span>
+                                    ${userVotes[pollId] ? `
+                                        ${userVotes[pollId] === option.text ? `<button class="checkmark-btn" aria-label="Voted">&#10003;</button>` : ''}
+                                    ` : `
+                                        ${isExpired ? `
+                                            <div class="ended-notice">
+                                                
+                                                <span class="ended-badge">Voting Ended</span>
+                                            </div>
+                                        ` : `
+                                            <button id="voteBtn_${pollId}_${option.text}" onclick="vote('${pollId}', '${option.text}')" aria-label="Vote for ${option.text}">Vote</button>
+                                        `}
+                                    `}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${isExpired ? `
+                        <div class="poll-results">
+                            ${generatePollResultsHTML(poll)}
+                        </div>
+                    ` : ''}
+                `;
+                pollListContent.appendChild(pollDiv);
+
+                if (!isExpired) {
+                    startCountdown(pollId, pollEndTime);
+                }
+            }
+        }
+
+        // Generate Poll Results HTML
+        function generatePollResultsHTML(poll) {
+            let resultsHTML = '<h4>Poll Results:</h4><ul>';
+            for (let option of poll.options) {
+                const voteCount = poll.votes && poll.votes[option.text] ? poll.votes[option.text] : 0;
+                resultsHTML += `<li>${option.text}: ${voteCount} votes</li>`;
+            }
+            resultsHTML += '</ul>';
+            return resultsHTML;
+        }
+
+        // Vote Function
+        async function vote(pollId, optionText) {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("Please log in before voting!");
+                return;
+            }
+
+            try {
+                const pollRef = database.ref(`polls/${pollId}`);
+                const pollSnapshot = await pollRef.once('value');
+                const poll = pollSnapshot.val();
+
+                if (!poll) {
+                    alert("Poll does not exist.");
+                    return;
+                }
+
+                const pollEndTime = new Date(poll.endTime);
+                const currentTime = new Date();
+
+                if (currentTime > pollEndTime) {
+                    alert("Poll has ended and cannot be voted on anymore.");
+                    loadPolls();
+                    return;
+                }
+
+                const userVoteRef = database.ref(`polls/${pollId}/userVotes/${user.uid}`);
+                const userVoteSnapshot = await userVoteRef.once('value');
+                if (userVoteSnapshot.exists()) {
+                    alert("You have already participated in this poll.");
+                    return;
+                }
+
+                // Record the user's vote
+                await userVoteRef.set(optionText);
+
+                // Update vote count
+                const voteRef = database.ref(`polls/${pollId}/votes/${optionText}`);
+                await voteRef.transaction((currentVotes) => {
+                    return (currentVotes || 0) + 1;
+                });
+
+                alert("Thank you for your vote!");
+                loadPolls();
+            } catch (error) {
+                console.error("Error while voting:", error);
+                alert(`Failed to vote: ${error.message}`);
+            }
+        }
+
+        // Show Users List (Admin Only)
+        function showUsersList() {
+            const userListModal = document.getElementById('userListModal');
+            loadUsersList();
+            userListModal.style.display = 'block';
+        }
+
+        // Load Users List
+        function loadUsersList() {
+            const userListContent = document.getElementById('userListContent');
+            userListContent.innerHTML = ''; // Clear existing content
+
+            const usersRef = database.ref('users');
+            usersRef.once('value')
+                .then((snapshot) => {
+                    const users = snapshot.val();
+                    if (users) {
+                        for (let userId in users) {
+                            const user = users[userId];
+                            
+                            // Check if user is banned
+                            const isBanned = user.banned ? 'Yes' : 'No';
+
+                            const userDiv = document.createElement('div');
+                            userDiv.className = 'user-item';
+                            userDiv.innerHTML = `
+                                <p><strong>Username:</strong> ${user.username}</p>
+                                <p><strong>Email:</strong> ${user.email}</p>
+                                <p><strong>Account Type:</strong> ${user.type}</p>
+                                <p><strong>Banned:</strong> ${isBanned}</p>
+                                <div class="user-actions">
+                                    <label for="userLevel_${userId}">Account Type:</label>
+                                    <select id="userLevel_${userId}" onchange="changeUserLevel('${userId}', this.value)" aria-label="Change ${user.username}'s account type">
+                                        <option value="user" ${user.type === 'user' ? 'selected' : ''}>User</option>
+                                        <option value="admin" ${user.type === 'admin' ? 'selected' : ''}>Admin</option>
+                                        <option value="limited_admin" ${user.type === 'limited_admin' ? 'selected' : ''}>Limited Admin</option>
+                                    </select>
+                                    <button onclick="banUser('${userId}', ${user.banned})" aria-label="${user.banned ? 'Unban' : 'Ban'} ${user.username}"> ${user.banned ? 'Unban' : 'Ban'} </button>
+                                </div>
+                                <hr>
+                            `;
+                            userListContent.appendChild(userDiv);
+                        }
+                    } else {
+                        userListContent.innerText = 'No registered users.';
+                    }
+                })
+                .catch((error) => {
+                    console.error("Failed to load user list:", error);
+                    userListContent.innerText = 'Failed to load user list. Please try again later.';
+                });
+        }
+
+        // Close Users List
+        function closeUsersList() {
+            document.getElementById('userListModal').style.display = 'none';
+        }
+
+        // Change User Level
+        function changeUserLevel(userId, newLevel) {
+            if (newLevel && (newLevel === 'user' || newLevel === 'admin' || newLevel === 'limited_admin')) {
+                const userRef = database.ref('users/' + userId);
+                userRef.update({ type: newLevel })
+                    .then(() => {
+                        alert("Account type updated successfully!");
+                        loadUsersList(); // Reload user list
+                    })
+                    .catch((error) => {
+                        console.error("Failed to update account type:", error);
+                        alert(`Failed to update account type: ${error.message}`);
+                    });
+            } else {
+                alert("Invalid account type. Please select 'User', 'Admin', or 'Limited Admin'.");
+                // Reload user list to reset selection
+                loadUsersList();
+            }
+        }
+
+        // Ban/Unban User
+        function banUser(userId, isBanned) {
+            const action = isBanned ? "unban" : "ban";
+            const confirmation = isBanned ? "Are you sure you want to unban this user?" : "Are you sure you want to ban this user?";
+            if (confirm(confirmation)) {
+                const userRef = database.ref('users/' + userId);
+                userRef.update({ banned: !isBanned })
+                    .then(() => {
+                        alert(`User has been successfully ${isBanned ? 'unbanned' : 'banned'}!`);
+                        loadUsersList(); // Reload user list
+                    })
+                    .catch((error) => {
+                        console.error("Failed to update user status:", error);
+                        alert(`Failed to update user status: ${error.message}`);
+                    });
+            }
+        }
+
+        // Toggle Color Blind Mode List
+        function toggleColorBlindList() {
+            const list = document.getElementById('colorBlindList');
+            if (list.style.display === 'none') {
+                list.style.display = 'block';
+            } else {
+                list.style.display = 'none';
+            }
+        }
+
+        // Set Color Blind Mode
+        function setColorBlindMode(mode) {
+            document.body.className = 'color-blind-' + mode;
+            localStorage.setItem('colorBlindMode', mode);
+            document.getElementById('colorBlindList').style.display = 'none';
+        }
+
+        // Start Countdown
+        function startCountdown(pollId, endTime) {
+            const countdownElement = document.getElementById(`countdown_${pollId}`);
+            if (!countdownElement) return;
+
+            // Function to update the countdown
+            function updateCountdown() {
+                const now = new Date();
+                const distance = endTime - now;
+
+                if (distance < 0) {
+                    countdownElement.innerText = "The poll has ended.";
+                    clearInterval(interval);
+                    // Reload poll list to show results
+                    loadPolls();
+                    return;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                countdownElement.innerText = `Time Remaining: ${days} Days ${hours} Hours ${minutes} Minutes ${seconds} Seconds`;
+            }
+
+            // Initial call
+            updateCountdown();
+            // Update every second
+            const interval = setInterval(updateCountdown, 1000);
+        }
+    </script>
+</body>
+</html>

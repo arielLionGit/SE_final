@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Voting System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="colorblind.js"></script>
+</head>
+<body>
+    
+    <div class="container">
+        <h1>Register Voting System</h1>
+        
+        <form id="registerForm">
+            <input type="email" id="email" placeholder="Email" required aria-label="Enter your email">
+            <input type="password" id="password" placeholder="Password" required aria-label="Enter your password">
+            <input type="password" id="confirmPassword" placeholder="Confirm Password" required aria-label="Confirm your password">
+            <input type="file" id="userIcon" accept="image/*" aria-label="Choose avatar image (optional)">
+            <button type="submit" aria-label="Submit registration">Register</button>
+        </form>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTjkufP4mtjwHv4WDokER5juRUXxp6pjg",
+            authDomain: "it350-7cebd.firebaseapp.com",
+            databaseURL: "https://it350-7cebd-default-rtdb.firebaseio.com",
+            projectId: "it350-7cebd",
+            storageBucket: "it350-7cebd.appspot.com",
+            messagingSenderId: "77388034445",
+            appId: "1:77388034445:web:af46ceea614fd1142a0dc4",
+            measurementId: "G-MVG8V25RGR"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Register form submit event
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('registerForm');
+
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const iconFile = document.getElementById('userIcon').files[0];
+
+                if (password !== confirmPassword) {
+                    alert("Passwords do not match!");
+                    return;
+                }
+
+                if (!isPasswordStrong(password)) {
+                    alert("Password does not meet all requirements!");
+                    return;
+                }
+
+                try {
+                    // Create user with Firebase Authentication
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    const user = userCredential.user;
+
+                    let iconData = null;
+                    if (iconFile) {
+                        const reader = new FileReader();
+                        iconData = await new Promise((resolve, reject) => {
+                            reader.onload = function(event) {
+                                resolve(event.target.result);
+                            }
+                            reader.onerror = function(error) {
+                                reject(error);
+                            }
+                            reader.readAsDataURL(iconFile);
+                        });
+                    }
+
+                    // Save user data to Realtime Database
+                    await database.ref('users/' + user.uid).set({
+                        username: email.split('@')[0],
+                        email: email,
+                        type: 'user',
+                        icon: iconData || ''
+                    });
+
+                    alert("Registration successful!");
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error("Registration failed:", error);
+                    alert(`Registration failed: ${error.message}`);
+                }
+            });
+
+            // Password strength check function
+            function isPasswordStrong(password) {
+                const requirements = [
+                    /.{8,}/,
+                    /[A-Z]/,
+                    /[a-z]/,
+                    /[0-9]/,
+                    /[^A-Za-z0-9]/
+                ];
+                return requirements.every(regex => regex.test(password));
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,688 @@
+:root {
+  --primary-color: #F89344;
+  --secondary-color: #FF642F;
+  --bg-700: #393A3A;
+  --bg-500: #575959;
+  --bg-300: #F4F4F4;
+  --text-color: #333333;
+  --white: #FFFFFF;
+  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: var(--bg-300);
+  color: var(--text-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  position: relative; /* Support absolutely positioned elements */
+  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensure the container is at least as tall as the viewport */
+  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+h1, h2, h3 {
+  color: var(--bg-700);
+}
+
+input, button, select {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+input, select {
+  background-color: var(--white);
+  color: var(--text-color);
+}
+
+button, .button {
+  background-color: var(--primary-color);
+  color: var(--white);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-weight: bold;
+}
+
+button:hover, .button:hover {
+  background-color: var(--secondary-color);
+}
+
+#loginForm, #logoutSection, #pollCreation {
+  background-color: var(--white);
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Added: Main content area fully utilizes the screen */
+#mainContent {
+  flex: 1; /* Expand the main content area to fill the remaining space */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+#mainContent h2 {
+  margin-bottom: 2rem;
+  color: var(--bg-700);
+}
+
+#pollList {
+  width: 100%;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.poll {
+  background-color: var(--white);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.poll:hover {
+  transform: translateY(-5px);
+}
+
+.poll-options {
+  display: flex;
+  flex-direction: row;
+  justify-content: center; /* Center items horizontally */
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.poll-option {
+  background-color: var(--bg-300);
+  border-radius: 5px;
+  padding: 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 200px;
+  height: 250px;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.poll-option img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 0;
+  margin-bottom: 0.5rem;
+}
+
+.poll-option .poll-option-content span {
+  font-size: 1em;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+  flex-grow: 1;
+}
+
+.poll-option .poll-option-content button {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.poll-option .poll-option-content button:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+/* Color Blind Mode Related Styles */
+.color-blind-protanopia {
+    filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='protanopia'%3E%3CfeColorMatrix type='matrix' values='0.567, 0.433, 0, 0, 0 0.558, 0.442, 0, 0, 0 0, 0.242, 0.758, 0, 0 0, 0, 0, 1, 0'/%3E%3C/filter%3E%3C/svg%3E#protanopia");
+}
+
+.color-blind-deuteranopia {
+    filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='deuteranopia'%3E%3CfeColorMatrix type='matrix' values='0.625, 0.375, 0, 0, 0 0.7, 0.3, 0, 0, 0 0, 0.3, 0.7, 0, 0 0, 0, 0, 1, 0'/%3E%3C/filter%3E%3C/svg%3E#deuteranopia");
+}
+
+.color-blind-tritanopia {
+    filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='tritanopia'%3E%3CfeColorMatrix type='matrix' values='0.95, 0.05, 0, 0, 0 0, 0.433, 0.567, 0, 0 0, 0.475, 0.525, 0, 0 0, 0, 0, 1, 0'/%3E%3C/filter%3E%3C/svg%3E#tritanopia");
+}
+
+.color-blind-tritanomaly {
+  filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='tritanomaly'%3E%3CfeColorMatrix type='matrix' values='0.967, 0.033, 0, 0, 0 0, 0.733, 0.267, 0, 0 0, 0.183, 0.817, 0, 0 0, 0, 0, 1, 0'/%3E%3C/filter%3E%3C/svg%3E#tritanomaly");
+}
+
+.color-blind-achromatopsia {
+    filter: grayscale(100%);
+}
+
+/* Color Blind Mode Dropdown Menu Styles */
+.color-blind-modes {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.color-blind-modes button#colorBlindToggle {
+    padding: 10px 15px;
+    background-color: #333;
+    color: #ffffff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.color-blind-modes button#colorBlindToggle:hover {
+    background-color: #555;
+}
+
+.color-blind-modes ul {
+    display: none; /* Initially hidden */
+}
+
+.color-blind-modes ul.show {
+    display: block; /* Add 'show' class to display */
+}
+
+/* Admin Button Styles */
+.admin-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.admin-buttons .button {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    background-color: #ff9933; /* Orange background */
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.admin-buttons .button:hover {
+    background-color: #e68a00; /* Darker orange on hover */
+}
+
+.assign-limited-admin-button {
+  background-color: #FFA500; /* Orange */
+}
+
+.assign-limited-admin-button:hover {
+  background-color: #FF8C00; /* Dark Orange */
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 800px;
+    border-radius: 8px;
+    max-height: 80vh;  /* Limit height to 80% of viewport height */
+    overflow-y: auto;  /* Show scrollbar when content exceeds */
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+}
+
+#userList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+#userList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+#userList li:last-child {
+  border-bottom: none;
+}
+
+#userList li .user-info {
+  flex-grow: 1;
+}
+
+#userList li button {
+  background-color: #ff9933;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  width: auto;
+  min-width: 70px;
+  margin-left: 10px;
+}
+
+#userList li button:hover {
+  background-color: #e68a00;
+}
+
+.expired-notice {
+  color: #ff0000;
+  font-weight: bold;
+}
+
+#userIcon {
+  width: 100px;  /* Increased width */
+  height: 100px; /* Increased height */
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 20px;  /* Increased right margin */
+  border: 2px solid #626262; /* Optional: Add icon border */
+}
+
+.change-icon-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;  /* Increased button padding */
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;  /* Increased font size */
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+  height: auto;  /* Changed to auto height */
+}
+
+.user-icon-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;  /* Increased spacing for better separation */
+}
+
+/* Cancel Vote Button Styles */
+.cancel-vote-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.cancel-vote-button:hover {
+  background-color: #d32f2f;
+}
+
+/* Poll Management Styles */
+.poll-management {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.poll-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.action-button {
+  flex: 0 1 auto;
+  padding: 10px;
+  background-color: #ff9933;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.action-button:hover {
+  background-color: #e68a00;
+}
+
+.poll-results {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.poll-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.poll-option-item {
+  padding: 5px 10px;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  flex: 1 1 calc(33.333% - 10px);
+  max-width: calc(33.333% - 10px);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.option-text {
+  font-size: 14px;
+}
+
+.poll-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.poll-chart {
+  width: 300px;
+  height: 300px;
+}
+
+.preview-image {
+  max-width: 100px;
+  max-height: 100px;
+  margin-top: 5px;
+}
+
+.delete-option {
+  margin-left: 10px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* Color Blind Mode Toggle Button Display */
+.color-blind-modes ul {
+    display: none; /* Initially hidden */
+}
+
+.color-blind-modes ul.show {
+    display: block; /* Add 'show' class to display */
+}
+
+/* Fullscreen Utilization */
+@media (min-width: 769px) {
+  #mainContent {
+    padding: 3rem;
+  }
+
+  #pollList {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .poll-option {
+    width: 200px;
+    height: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+        margin: 1rem;
+    }
+
+    .delete-option {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .preview-image {
+        width: 80px;
+        height: 80px;
+    }
+
+    #createPollForm .button {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+
+    /* Adjust poll-options for smaller screens */
+    .poll-options {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .poll-option {
+        width: 150px;
+        height: 200px;
+        margin-bottom: 1rem;
+    }
+}
+
+/* Remove extra whitespace from option containers */
+.poll-options::before,
+.poll-options::after {
+    content: "";
+    flex: 1;
+}
+
+/* Adjust overall poll list display */
+#pollListContent {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Unified Create Poll Interface Styles */
+
+/* Ensure the Create Poll container uses the global background gradient */
+body {
+    background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+}
+
+/* Create Poll Form Container Styles */
+.container {
+    background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+/* Form Title Styles */
+.container h1 {
+    text-align: center;
+    color: var(--bg-700);
+    margin-bottom: 1.5rem;
+    font-size: 2em;
+}
+
+/* Form Field Styles */
+#createPollForm input[type="text"],
+#createPollForm textarea,
+#createPollForm input[type="datetime-local"] {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    background-color: var(--white);
+    color: var(--text-color);
+}
+
+/* Option Container Styles */
+.option-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+/* Option Image Preview Styles */
+.preview-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-top: 0.5rem;
+}
+
+/* Add Option and Submit Button Styles */
+#createPollForm .button {
+    width: 48%;
+    padding: 0.75rem;
+    margin: 0.5rem 1%;
+    font-size: 1rem;
+}
+
+/* Delete Option Button Styles */
+.delete-option {
+    align-self: flex-end;
+    background-color: #d32f2f;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.delete-option:hover {
+    background-color: #b71c1c;
+}
+
+/* Add Option Button Styles */
+#createPollForm button[type="button"] {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+#createPollForm button[type="button"]:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Return to Main Page Link Styles */
+.container .button {
+    display: block;
+    text-align: center;
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 0.75rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.container .button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Responsive Design Adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+        margin: 1rem;
+    }
+
+    .delete-option {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .preview-image {
+        width: 80px;
+        height: 80px;
+    }
+
+    #createPollForm .button {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+}
+
+.white-text {
+    color: #FFFFFF;
+}

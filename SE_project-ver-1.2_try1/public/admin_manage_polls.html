@@ -1,0 +1,489 @@
+<!-- SE_project-ver-1.2_try1/public/admin_manage_polls.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Polls</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="colorblind.js"></script>
+    <style>
+        /* Your existing styles */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .poll {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .poll h2 {
+            margin-top: 0;
+        }
+
+        .poll button {
+            margin-right: 10px;
+        }
+
+        #deleteAllPollsButton {
+            background-color: #ff4136;
+            color: white;
+            margin-bottom: 20px;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #deleteAllPollsButton:hover {
+            background-color: #ff1a1a;
+        }
+
+        .top-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            /* Other modal styles */
+        }
+
+        /* Back button styles */
+        .back-button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Polls</h1>
+        <div class="top-buttons">
+            <button class="back-button" onclick="goBack()" aria-label="Go back to previous page">Back</button>
+            <button id="deleteAllPollsButton" onclick="deleteAllPolls()" aria-label="Delete all polls">Delete All Polls</button>
+        </div>
+        <div id="pollList" aria-live="polite"></div>
+
+        <!-- User List Modal -->
+        <div id="userListModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeUsersList()" aria-label="Close user list">&times;</span>
+                <h2>Registered Users</h2>
+                <ul id="userListContent"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTjkufP4mtjwHv4WDokER5juRUXxp6pjg",
+            authDomain: "it350-7cebd.firebaseapp.com",
+            databaseURL: "https://it350-7cebd-default-rtdb.firebaseio.com",
+            projectId: "it350-7cebd",
+            storageBucket: "it350-7cebd.appspot.com",
+            messagingSenderId: "77388034445",
+            appId: "1:77388034445:web:af46ceea614fd1142a0dc4",
+            measurementId: "G-MVG8V25RGR"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Used to store chart instances for each poll
+        const charts = {};
+
+        // Listen for auth state changes
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Check if user is an admin
+                database.ref('users/' + user.uid).once('value').then(snapshot => {
+                    const userData = snapshot.val();
+                    if (userData.type !== 'admin') {
+                        alert("You do not have permission to access this page.");
+                        window.location.href = 'index.html';
+                    } else {
+                        // Admin can use delete all polls button
+                        document.getElementById('deleteAllPollsButton').style.display = 'inline-block';
+                        loadPolls();
+                        loadUsers();
+                    }
+                });
+            } else {
+                // User not logged in, redirect to login page
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Back button functionality
+        function goBack() {
+            window.history.back();
+            // Or you can redirect to a specific page, e.g.:
+            // window.location.href = 'index.html';
+        }
+
+        // Load poll list
+        function loadPolls() {
+            const pollList = document.getElementById('pollList');
+            pollList.innerHTML = '';
+
+            database.ref('polls').once('value').then(snapshot => {
+                const polls = snapshot.val();
+                if (polls) {
+                    Object.entries(polls).forEach(([pollId, poll]) => {
+                        const pollDiv = document.createElement('div');
+                        pollDiv.className = 'poll';
+                        pollDiv.innerHTML = `
+                            <h2>${poll.name}</h2>
+                            <p>${poll.description}</p>
+                            <button onclick="viewPollResults('${pollId}')" aria-label="View results for poll ${poll.name}">View Results</button>
+                            <button onclick="downloadPollResults('${pollId}', '${poll.name}')" aria-label="Download results for poll ${poll.name}">Download Results</button>
+                            <button onclick="deletePoll('${pollId}')" aria-label="Delete poll ${poll.name}">Delete</button>
+                            <canvas id="chart-${pollId}" style="display: none;"></canvas>
+                        `;
+                        pollList.appendChild(pollDiv);
+                    });
+                } else {
+                    pollList.innerHTML = '<p>No polls available.</p>';
+                }
+            }).catch(error => {
+                console.error("Failed to load poll list:", error);
+                pollList.innerHTML = '<p>Failed to load poll list. Please try again later.</p>';
+            });
+        }
+
+        // Delete single poll
+        function deletePoll(pollId) {
+            if (confirm("Are you sure you want to delete this poll?")) {
+                database.ref('polls/' + pollId).remove()
+                    .then(() => {
+                        alert("Poll deleted.");
+                        // If related chart exists, destroy it
+                        if (charts[pollId]) {
+                            charts[pollId].destroy();
+                            delete charts[pollId];
+                        }
+                        loadPolls();
+                    })
+                    .catch(error => {
+                        console.error("Failed to delete poll:", error);
+                        alert("Failed to delete poll.");
+                    });
+            }
+        }
+
+        // Delete all polls
+        function deleteAllPolls() {
+            if (confirm("Are you sure you want to delete all polls?")) {
+                database.ref('polls').remove()
+                    .then(() => {
+                        alert("All polls deleted.");
+                        // Destroy all charts
+                        for (let pollId in charts) {
+                            charts[pollId].destroy();
+                        }
+                        Object.keys(charts).forEach(key => delete charts[key]);
+                        loadPolls();
+                    })
+                    .catch(error => {
+                        console.error("Failed to delete all polls:", error);
+                        alert("Failed to delete all polls.");
+                    });
+            }
+        }
+
+        // Download poll results
+        async function downloadPollResults(pollId, pollName) {
+            try {
+                const snapshot = await database.ref('polls/' + pollId).once('value');
+                const poll = snapshot.val();
+                if (!poll) {
+                    alert("Poll data not found.");
+                    return;
+                }
+
+                // Create temporary canvas element
+                const chartCanvas = document.createElement('canvas');
+                chartCanvas.width = 400;
+                chartCanvas.height = 300;
+                chartCanvas.style.display = 'none'; // Hide temporary canvas
+                document.body.appendChild(chartCanvas); // Must append to DOM to render
+
+                const ctx = chartCanvas.getContext('2d');
+
+                const labels = Object.keys(poll.votes);
+                const data = Object.values(poll.votes);
+                const backgroundColors = labels.map((_, index) => getColor(index));
+
+                // Create Chart.js chart
+                const chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            datalabels: {
+                                formatter: (value, context) => {
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                    return percentage;
+                                },
+                                color: '#fff',
+                            }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+
+                // Wait for chart to finish rendering
+                await new Promise((resolve) => {
+                    chart.options.animation = {
+                        onComplete: resolve
+                    };
+                    chart.update();
+                });
+
+                // Get chart data URL
+                const image = chart.toBase64Image();
+
+                // Create temporary link element
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `Poll_${poll.name.replace(/\s+/g, '_')}.png`;
+
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Destroy chart instance and remove temporary canvas
+                chart.destroy();
+                document.body.removeChild(chartCanvas);
+            } catch (error) {
+                console.error("Failed to download poll results:", error);
+                alert("Failed to download poll results.");
+            }
+        }
+
+        // Get color function
+        function getColor(index) {
+            const colors = [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40'
+            ];
+            return colors[index % colors.length];
+        }
+
+        // View detailed poll results
+        function viewPollResults(pollId) {
+            const canvas = document.getElementById(`chart-${pollId}`);
+            if (canvas.style.display === 'none') {
+                canvas.style.display = 'block';
+                generateChart(pollId, canvas);
+            } else {
+                canvas.style.display = 'none';
+                // Destroy chart instance
+                if (charts[pollId]) {
+                    charts[pollId].destroy();
+                    delete charts[pollId];
+                }
+            }
+        }
+
+        // Generate chart
+        function generateChart(pollId, canvas) {
+            // If chart already exists, destroy it first
+            if (charts[pollId]) {
+                charts[pollId].destroy();
+            }
+
+            const ctx = canvas.getContext('2d');
+
+            database.ref('polls/' + pollId + '/votes').once('value').then(snapshot => {
+                const votes = snapshot.val();
+                if (votes) {
+                    const labels = Object.keys(votes);
+                    const data = Object.values(votes);
+                    const backgroundColors = labels.map((_, index) => getColor(index));
+
+                    charts[pollId] = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: backgroundColors
+                            }]
+                        },
+                        options: {
+                            plugins: {
+                                datalabels: {
+                                    formatter: (value, context) => {
+                                        const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                        return percentage;
+                                    },
+                                    color: '#fff',
+                                }
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                } else {
+                    alert("There are no results for this poll.");
+                }
+            }).catch(error => {
+                console.error("Failed to load poll results:", error);
+                alert("Failed to load poll results. Please try again later.");
+            });
+        }
+
+        // Load user list (admin only)
+        function loadUsers() {
+            const userListContent = document.getElementById('userListContent');
+            userListContent.innerHTML = '';
+
+            database.ref('users').once('value').then(snapshot => {
+                const users = snapshot.val();
+                if (users) {
+                    Object.entries(users).forEach(([uid, user]) => {
+                        const userItem = document.createElement('li');
+                        userItem.className = 'user-item';
+                        userItem.innerHTML = `
+                            <p><strong>Username:</strong> ${user.username}</p>
+                            <p><strong>Email:</strong> ${user.email}</p>
+                            <p><strong>Account Type:</strong> ${user.type}</p>
+                            <button onclick="deleteUser('${uid}')" aria-label="Delete user ${user.username}">Delete</button>
+                            <button onclick="assignAdmin('${uid}')" aria-label="Assign user ${user.username} as Admin">Assign Admin</button>
+                            <button onclick="unassignAdmin('${uid}')" aria-label="Unassign user ${user.username} from Admin">Unassign Admin</button>
+                            <button onclick="assignLimitedAdmin('${uid}')" aria-label="Assign user ${user.username} as Limited Admin">Assign Limited Admin</button>
+                            <button onclick="showSensitiveInfo('${uid}')" aria-label="Show sensitive info for user ${user.username}">Show Sensitive Info</button>
+                            <hr>
+                        `;
+                        userListContent.appendChild(userItem);
+                    });
+                } else {
+                    userListContent.innerHTML = '<p>No users registered.</p>';
+                }
+            }).catch(error => {
+                console.error("Failed to load user list:", error);
+                userListContent.innerHTML = '<p>Failed to load user list. Please try again later.</p>';
+            });
+        }
+
+        // Delete user function
+        function deleteUser(uid) {
+            if (confirm("Are you sure you want to delete this user?")) {
+                database.ref('users/' + uid).remove()
+                    .then(() => {
+                        alert("User deleted.");
+                        loadUsers();
+                    })
+                    .catch(error => {
+                        console.error("Failed to delete user:", error);
+                        alert("Failed to delete user.");
+                    });
+            }
+        }
+
+        // Assign admin function
+        function assignAdmin(uid) {
+            database.ref('users/' + uid).update({ type: 'admin' })
+                .then(() => {
+                    alert("User has been assigned as Admin.");
+                    loadUsers();
+                })
+                .catch(error => {
+                    console.error("Failed to assign Admin:", error);
+                    alert("Failed to assign Admin.");
+                });
+        }
+
+        // Unassign admin function
+        function unassignAdmin(uid) {
+            database.ref('users/' + uid).update({ type: 'user' })
+                .then(() => {
+                    alert("User's Admin status has been removed.");
+                    loadUsers();
+                })
+                .catch(error => {
+                    console.error("Failed to unassign Admin:", error);
+                    alert("Failed to unassign Admin.");
+                });
+        }
+
+        // Assign limited admin function
+        function assignLimitedAdmin(uid) {
+            database.ref('users/' + uid).update({ type: 'limited_admin' })
+                .then(() => {
+                    alert("User has been assigned as Limited Admin.");
+                    loadUsers();
+                })
+                .catch(error => {
+                    console.error("Failed to assign Limited Admin:", error);
+                    alert("Failed to assign Limited Admin.");
+                });
+        }
+
+        // Show sensitive info function (admin only)
+        function showSensitiveInfo(uid) {
+            database.ref('users/' + uid).once('value').then(snapshot => {
+                const user = snapshot.val();
+                if (user) {
+                    alert(`Username: ${user.username}\nEmail: ${user.email}`);
+                } else {
+                    alert("User data not found.");
+                }
+            }).catch(error => {
+                console.error("Failed to load user data:", error);
+                alert("Failed to load user data.");
+            });
+        }
+
+        // Close user list modal
+        function closeUsersList() {
+            document.getElementById('userListModal').style.display = 'none';
+        }
+
+        // Load user and poll lists
+        window.onload = function() {
+            // loadPolls and loadUsers already called in auth state listener
+        };
+    </script>
+</body>
+</html>

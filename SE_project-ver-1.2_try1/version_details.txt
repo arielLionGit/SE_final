@@ -1,0 +1,14 @@
+
+
+Solved:
+1. Website can now be hosted on Firebase
+
+Added:
+
+
+To be solved:
+1. Still using local storage, need to figure out how to use database (Firebase)
+2. Test if the AJAX auto-update can work
+3. Test can use in multi-devices
+4. Enhance UI
+

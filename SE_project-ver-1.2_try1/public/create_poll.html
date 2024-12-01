@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Poll</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK Files -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="colorblind.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Create Poll</h1>
+        <div class="color-blind-modes">
+            <button onclick="toggleColorBlindList()" aria-haspopup="true" aria-expanded="false" id="colorBlindToggle">
+                Color Mode
+            </button>
+            <div id="colorBlindList" style="display: none;">
+                <button onclick="setColorBlindMode('normal')">Normal</button>
+                <button onclick="setColorBlindMode('protanopia')">Protanopia</button>
+                <button onclick="setColorBlindMode('deuteranopia')">Deuteranopia</button>
+                <button onclick="setColorBlindMode('tritanopia')">Tritanopia</button>
+                <button onclick="setColorBlindMode('tritanomaly')">Tritanomaly</button>
+                <button onclick="setColorBlindMode('achromatopsia')">Achromatopsia</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h2>Create New Poll</h2>
+            <form id="createPollForm">
+                <input type="text" id="pollName" placeholder="Poll Name" required aria-label="Enter Poll Name">
+                <textarea id="pollDescription" placeholder="Poll Description" required aria-label="Enter Poll Description"></textarea>
+                
+                <div id="optionsContainer">
+                    <div class="option-container">
+                        <input type="text" class="option-text" placeholder="Option 1" required aria-label="Enter Option 1">
+                        <input type="file" class="option-image" accept="image/*" aria-label="Upload Option 1 Image (Optional)">
+                        <button type="button" class="delete-option" onclick="removeOption(this)" aria-label="Delete this option">Delete Option</button>
+                    </div>
+                    <div class="option-container">
+                        <input type="text" class="option-text" placeholder="Option 2" required aria-label="Enter Option 2">
+                        <input type="file" class="option-image" accept="image/*" aria-label="Upload Option 2 Image (Optional)">
+                        <button type="button" class="delete-option" onclick="removeOption(this)" aria-label="Delete this option">Delete Option</button>
+                    </div>
+                </div>
+                <button type="button" onclick="addOption()" aria-label="Add Option">Add Option</button>
+
+                <label for="pollEndTime">End Time (dd/mm/yyyy HH:MM)</label>
+                <input type="datetime-local" id="pollEndTime" required aria-label="Select Poll End Date and Time">
+
+                <button type="submit" aria-label="Submit Poll">Create Poll</button>
+            </form>
+
+            <!-- Return to Main Screen Button -->
+            <div class="return-button-container" style="margin-top: 20px; text-align: center;">
+                <button onclick="window.location.href='index.html'" class="button" aria-label="Return to Main Screen">Return to Main Screen</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTjkufP4mtjwHv4WDokER5juRUXxp6pjg",
+            authDomain: "it350-7cebd.firebaseapp.com",
+            databaseURL: "https://it350-7cebd-default-rtdb.firebaseio.com",
+            projectId: "it350-7cebd",
+            storageBucket: "it350-7cebd.appspot.com",
+            messagingSenderId: "77388034445",
+            appId: "1:77388034445:web:af46ceea614fd1142a0dc4",
+            measurementId: "G-MVG8V25RGR"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Ensure at least two options are present
+        function removeOption(button) {
+            const optionsContainer = document.getElementById('optionsContainer');
+            const optionDiv = button.parentElement;
+            if (optionsContainer.children.length > 2) {
+                optionsContainer.removeChild(optionDiv);
+            } else {
+                alert("Please keep at least two options."); // Prompt to keep at least two options
+            }
+        }
+
+        function addOption() {
+            const optionsContainer = document.getElementById('optionsContainer');
+            const optionCount = optionsContainer.children.length + 1;
+
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'option-container';
+            optionDiv.innerHTML = `
+                <input type="text" class="option-text" placeholder="Option ${optionCount}" required aria-label="Enter Option ${optionCount}">
+                <input type="file" class="option-image" accept="image/*" aria-label="Upload Option ${optionCount} Image (Optional)">
+                <button type="button" class="delete-option" onclick="removeOption(this)" aria-label="Delete this option">Delete Option</button>
+            `;
+            optionsContainer.appendChild(optionDiv);
+        }
+
+        document.getElementById('createPollForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const pollName = document.getElementById('pollName').value.trim();
+            const pollDescription = document.getElementById('pollDescription').value.trim();
+            const pollEndTime = document.getElementById('pollEndTime').value;
+
+            if (!pollName || !pollDescription || !pollEndTime) {
+                alert("Please fill all required fields.");
+                return;
+            }
+
+            const endTime = new Date(pollEndTime);
+            if (isNaN(endTime.getTime())) {
+                alert("Please select a valid end time.");
+                return;
+            }
+
+            const currentTime = new Date();
+            if (endTime <= currentTime) {
+                alert("End time must be after the current time.");
+                return;
+            }
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            const optionDivs = optionsContainer.getElementsByClassName('option-container');
+
+            if (optionDivs.length < 2) {
+                alert("Please add at least two options.");
+                return;
+            }
+
+            const options = [];
+
+            for (let i = 0; i < optionDivs.length; i++) {
+                const optionText = optionDivs[i].querySelector('.option-text').value.trim();
+                const optionImageFile = optionDivs[i].querySelector('.option-image').files[0];
+                let optionImage = '';
+
+                if (optionImageFile) {
+                    try {
+                        optionImage = await readFileAsDataURL(optionImageFile);
+                    } catch (error) {
+                        console.error("Image read failed:", error);
+                        alert("Unable to read option image.");
+                        return;
+                    }
+                }
+
+                if (!optionText) {
+                    alert(`Please fill in the text for option ${i + 1}.`);
+                    return;
+                }
+
+                options.push({
+                    text: optionText,
+                    image: optionImage
+                });
+            }
+
+            // Create new poll
+            const newPollRef = database.ref('polls').push();
+            const pollId = newPollRef.key;
+
+            await newPollRef.set({
+                name: pollName,
+                description: pollDescription,
+                endTime: endTime.toISOString(),
+                options: options,
+                votes: {},
+                userVotes: {}
+            });
+
+            alert("Poll created successfully!");
+            window.location.href = 'index.html';
+        });
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+    </script>
+</body>
+</html>
